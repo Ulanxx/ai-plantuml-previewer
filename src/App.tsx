@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import CodeMirror from '@uiw/react-codemirror';
 import PlantUML from 'react-plantuml';
 import { toPng } from 'html-to-image';
@@ -8,66 +8,115 @@ import {
   PanelResizeHandle
 } from "react-resizable-panels";
 import './App.css';
+import { AIModal } from './components/AIModal';
+
+interface UMLDiagram {
+  id: string;
+  code: string;
+  name: string;
+  createdAt: string;
+}
 
 function App() {
+  const [diagrams, setDiagrams] = useState<UMLDiagram[]>([]);
+  const [currentDiagram, setCurrentDiagram] = useState<UMLDiagram | null>(null);
   const [code, setCode] = useState(`@startuml
 skinparam backgroundColor transparent
-skinparam defaultFontName "Comic Sans MS"
+skinparam defaultFontName "PingFang SC"
+actor User
+actor AI
 
-' 定义参与者
-actor Developer
-participant "基础库" as Mothra
-participant "App" as App
-participant "Miniapp" as Miniapp
-participant "云端" as Backend
-participant "平台" as Platform
-database "Data" as Data
+User -> AI: 1. User's request
+AI -> User: 2. AI's response
 
-' 开始体验评分流程
-Developer -> App: 1. 开始体验评分
-App -> Data: 2. 创建体验评分数据
-
-' 运行时指标收集
-group 指标收集阶段
-activate App
-App -> App: 3.1 获取小程序包静态分析指标
-App -> App: 3.2 收集运行时指标
-Mothra -> App: 3.3 收集基础库运行时指标
-
-    ' 数据处理与存储
-    App -> Data: 4. 写入指标数据
-    deactivate App
-
-end
-
-' 结束评分流程
-group 评分计算与展示阶段
-Developer -> App: 5. 结束体验评分
-activate App
-App <-- Data: 6. 获取评分数据
-App -> Miniapp: 7. 携带评分数据打开体验评分小程序
-deactivate App
-
-    activate Miniapp
-    Miniapp -> Miniapp: 8. 调用 SDK 计算评分
-    Miniapp -> Miniapp: 9. 展示评分报告
-    Note right: 展示评分报告
-    Miniapp -> Backend: 10. 上传评分数据
-    Backend --> Miniapp: 11. 确认数据接收
-    deactivate Miniapp
-
-end
-
-' 平台展示阶段
-group 平台数据展示
-activate Platform
-Platform -> Backend: 12. 获取云端评分数据
-Platform -> Platform: 13. 展示评分报告
-deactivate Platform
-end
 @enduml`);
   const [error, setError] = useState('');
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [diagramName, setDiagramName] = useState('');
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const previewRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // 从本地存储加载图表
+    const savedDiagrams = localStorage.getItem('uml-diagrams');
+    if (savedDiagrams) {
+      const parsed = JSON.parse(savedDiagrams);
+      setDiagrams(parsed);
+      // 如果有图表，加载最新的一个
+      if (parsed.length > 0) {
+        const latest = parsed[parsed.length - 1];
+        setCurrentDiagram(latest);
+        setCode(latest.code);
+        setDiagramName(latest.name);
+      }
+    }
+  }, []);
+
+  // 监听代码变化，自动保存当前图表
+  useEffect(() => {
+    if (currentDiagram) {
+      const updatedDiagram = { ...currentDiagram, code };
+      setDiagrams(prev => {
+        const updated = prev.map(d => 
+          d.id === currentDiagram.id ? updatedDiagram : d
+        );
+        localStorage.setItem('uml-diagrams', JSON.stringify(updated));
+        return updated;
+      });
+    }
+  }, [code, currentDiagram]);
+
+  // 保存图表列表到本地存储
+  useEffect(() => {
+    localStorage.setItem('uml-diagrams', JSON.stringify(diagrams));
+  }, [diagrams]);
+
+  const createNewDiagram = () => {
+    const defaultCode = `@startuml
+skinparam backgroundColor transparent
+skinparam defaultFontName "PingFang SC"
+
+@enduml`;
+    setCode(defaultCode);
+    setCurrentDiagram(null);
+    setDiagramName('');
+  };
+
+  const saveDiagram = () => {
+    if (!diagramName.trim()) {
+      setError('Please enter a name for your diagram');
+      return;
+    }
+
+    const newDiagram: UMLDiagram = {
+      id: currentDiagram?.id || Date.now().toString(),
+      code,
+      name: diagramName,
+      createdAt: new Date().toISOString(),
+    };
+
+    setDiagrams(prev => {
+      const index = prev.findIndex(d => d.id === newDiagram.id);
+      if (index >= 0) {
+        const updated = [...prev];
+        updated[index] = newDiagram;
+        return updated;
+      }
+      return [...prev, newDiagram];
+    });
+
+    setCurrentDiagram(newDiagram);
+    setShowSaveDialog(false);
+    setError('');
+  };
+
+  const loadDiagram = (diagram: UMLDiagram) => {
+    setCode(diagram.code);
+    setCurrentDiagram(diagram);
+    setDiagramName(diagram.name);
+  };
 
   const handleExport = async () => {
     if (previewRef.current) {
@@ -86,19 +135,120 @@ end
 
   return (
     <div className="app-container">
-      <PanelGroup direction="horizontal">
-        <Panel defaultSize={50} minSize={30}>
-          <div className="editor-pane">
-            <div className="toolbar">
-              <button onClick={handleExport} className="export-btn">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Export PNG
-              </button>
+      {isGenerating && (
+        <div className="progress-bar-container">
+          <div className="progress-bar" style={{ width: `${generationProgress}%` }} />
+        </div>
+      )}
+      <AIModal
+        isOpen={isAIModalOpen}
+        onClose={() => setIsAIModalOpen(false)}
+        currentUML={currentDiagram?.code}
+        onSubmit={async (prompt, type) => {
+          setIsAIModalOpen(false);
+          setIsGenerating(true);
+          
+          // 在实际实现中，这里会根据 type 来决定是优化当前 UML 还是创建新的
+          
+          // Mock AI generation process
+          for (let i = 0; i <= 100; i += 10) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+            setGenerationProgress(i);
+          }
+
+          // Mock response - in real implementation, this would be the response from deepseek
+          const mockUmlCode = `@startuml\nskinparam backgroundColor transparent\nactor User\nparticipant System\n\nUser -> System: Request\nSystem --> User: Response\n@enduml`;
+          
+          setCode(mockUmlCode);
+          setIsGenerating(false);
+          setGenerationProgress(0);
+        }}
+      />
+      <div className="toolbar">
+        <button onClick={createNewDiagram} className="new-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 5v14M5 12h14" />
+          </svg>
+          New
+        </button>
+        <button onClick={() => setShowSaveDialog(true)} className="save-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+            <polyline points="17 21 17 13 7 13 7 21" />
+            <polyline points="7 3 7 8 15 8" />
+          </svg>
+          Save
+        </button>
+        <button onClick={() => setIsAIModalOpen(true)} className="ai-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+          </svg>
+          AI Generate
+        </button>
+        <button onClick={handleExport} className="export-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Export PNG
+        </button>
+      </div>
+
+      {showSaveDialog && (
+        <div className="modal-overlay">
+          <div className="modal-content save-dialog">
+            <h2>{currentDiagram ? 'Save Diagram' : 'Save New Diagram'}</h2>
+            <input
+              type="text"
+              value={diagramName}
+              onChange={(e) => setDiagramName(e.target.value)}
+              placeholder="Enter diagram name"
+              className="diagram-name-input"
+            />
+            {error && <div className="error-message">{error}</div>}
+            <div className="modal-buttons">
+              <button type="button" onClick={() => setShowSaveDialog(false)}>Cancel</button>
+              <button type="submit" onClick={saveDiagram}>Save</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      <PanelGroup direction="horizontal">
+        <Panel defaultSize={20} minSize={15}>
+          <div className="diagrams-sidebar">
+            <div className="sidebar-header">
+              <h2>Saved Diagrams</h2>
+            </div>
+            <div className="diagrams-list">
+              {diagrams.map(diagram => (
+                <div
+                  key={diagram.id}
+                  className={`diagram-item ${currentDiagram?.id === diagram.id ? 'active' : ''}`}
+                  onClick={() => loadDiagram(diagram)}
+                >
+                  <div className="diagram-info">
+                    <span className="diagram-name">{diagram.name}</span>
+                    <span className="diagram-date">
+                      {new Date(diagram.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {diagrams.length === 0 && (
+                <div className="no-diagrams">
+                  No saved diagrams yet
+                </div>
+              )}
+            </div>
+          </div>
+        </Panel>
+
+        <PanelResizeHandle className="resize-handle" />
+
+        <Panel defaultSize={40} minSize={30}>
+          <div className="editor-pane">
             <CodeMirror
               value={code}
               onChange={(value) => setCode(value)}
@@ -115,7 +265,7 @@ end
 
         <Panel minSize={30}>
           <div className="preview-pane" ref={previewRef}>
-            <PlantUML
+              <PlantUML
               src={code}
               alt="PlantUML Diagram"
             />
