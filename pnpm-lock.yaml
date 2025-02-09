@@ -29,9 +29,6 @@ importers:
       react-resizable-panels:
         specifier: ^2.1.7
         version: 2.1.7(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
-      react-split-pane:
-        specifier: ^0.1.92
-        version: 0.1.92(react-dom@19.0.0(react@19.0.0))(react@19.0.0)
     devDependencies:
       '@eslint/js':
         specifier: ^9.19.0
@@ -1045,9 +1042,6 @@ packages:
   react-is@16.13.1:
     resolution: {integrity: sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==}
 
-  react-lifecycles-compat@3.0.4:
-    resolution: {integrity: sha512-fBASbA6LnOU9dOU2eW7aQ8xmYBSXUIWr+UmF9b1efZBazGNO+rcXT/icdKnYm2pTwcRylVUYwW7H1PHfLekVzA==}
-
   react-plantuml@0.0.8:
     resolution: {integrity: sha512-fRvl55q/2k/6qVkmnZCHPSaq49y81NUsncEKZN6GZe64pMKlu1fKQFXlhNZMNJcdgpHG6SIZv2nPuKy47vD4RQ==}
 
@@ -1060,15 +1054,6 @@ packages:
     peerDependencies:
       react: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
       react-dom: ^16.14.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc
-
-  react-split-pane@0.1.92:
-    resolution: {integrity: sha512-GfXP1xSzLMcLJI5BM36Vh7GgZBpy+U/X0no+VM3fxayv+p1Jly5HpMofZJraeaMl73b3hvlr+N9zJKvLB/uz9w==}
-    peerDependencies:
-      react: ^16.0.0-0
-      react-dom: ^16.0.0-0
-
-  react-style-proptype@3.2.2:
-    resolution: {integrity: sha512-ywYLSjNkxKHiZOqNlso9PZByNEY+FTyh3C+7uuziK0xFXu9xzdyfHwg4S9iyiRRoPCR4k2LqaBBsWVmSBwCWYQ==}
 
   react@16.14.0:
     resolution: {integrity: sha512-0X2CImDkJGApiAlcf0ODKIneSwBPhqJawOa5wCtKbu7ZECrmS26NvtSILynQ66cgkT/RJ4LidJOc3bUESwmU8g==}
@@ -2203,8 +2188,6 @@ snapshots:
 
   react-is@16.13.1: {}
 
-  react-lifecycles-compat@3.0.4: {}
-
   react-plantuml@0.0.8:
     dependencies:
       '@types/react': 16.14.62
@@ -2219,18 +2202,6 @@ snapshots:
     dependencies:
       react: 19.0.0
       react-dom: 19.0.0(react@19.0.0)
-
-  react-split-pane@0.1.92(react-dom@19.0.0(react@19.0.0))(react@19.0.0):
-    dependencies:
-      prop-types: 15.8.1
-      react: 19.0.0
-      react-dom: 19.0.0(react@19.0.0)
-      react-lifecycles-compat: 3.0.4
-      react-style-proptype: 3.2.2
-
-  react-style-proptype@3.2.2:
-    dependencies:
-      prop-types: 15.8.1
 
   react@16.14.0:
     dependencies:
